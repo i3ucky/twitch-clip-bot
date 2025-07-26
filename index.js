@@ -61,23 +61,8 @@ async function getLatestClip() {
   const clipData = await clipRes.json();
   if (!clipData.data || clipData.data.length === 0) return null;
 
-  // Neuesten Clip anhand von created_at ermitteln
   const newestClip = clipData.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
   return newestClip;
-}
-
-  const userData = await userRes.json();
-  const userId = userData.data[0]?.id;
-  if (!userId) return null;
-
-  const clipRes = await fetch(`https://api.twitch.tv/helix/clips?broadcaster_id=${userId}&first=1`, {
-    headers: {
-      'Client-ID': TWITCH_CLIENT_ID,
-      'Authorization': `Bearer ${accessToken}`
-    }
-  });
-  const clipData = await clipRes.json();
-  return clipData.data[0] || null;
 }
 
 async function sendClipToDiscord(clip) {
@@ -90,20 +75,17 @@ async function sendClipToDiscord(clip) {
     }
   };
 
-  let channel;
   try {
-    channel = await discordClient.channels.fetch(DISCORD_CHANNEL_ID);
+    const channel = await discordClient.channels.fetch(DISCORD_CHANNEL_ID);
+    await channel.send({ content: `🎬 Neuer Clip von **${clip.broadcaster_name}**`, embeds: [embed] });
   } catch (e) {
     console.error('❌ Discord-Channel konnte nicht geladen werden. Prüfe die ID und Rechte.', e);
-    return;
   }
-
-  await channel.send({ content: `🎬 Neuer Clip von **${clip.broadcaster_name}**`, embeds: [embed] });
 }
 
 async function poll() {
   try {
-    await getAccessToken(); // ← Access Token bei jedem Durchlauf neu holen
+    await getAccessToken();
     const clip = await getLatestClip();
     if (clip && clip.id !== lastClipId) {
       await sendClipToDiscord(clip);
@@ -116,7 +98,7 @@ async function poll() {
 
 discordClient.once('ready', async () => {
   console.log(`✅ Discord-Bot online: ${discordClient.user.tag}`);
-  await poll(); // Direkt bei Start
+  await poll(); // Direkt starten
   setInterval(poll, 5 * 60 * 1000); // Alle 5 Minuten
 });
 
