@@ -61,6 +61,7 @@ async function getLatestClip() {
   const clipData = await clipRes.json();
   if (!clipData.data || clipData.data.length === 0) return null;
 
+  // Neuesten Clip anhand von created_at ermitteln
   const newestClip = clipData.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
   return newestClip;
 }
@@ -75,12 +76,15 @@ async function sendClipToDiscord(clip) {
     }
   };
 
+  let channel;
   try {
-    const channel = await discordClient.channels.fetch(DISCORD_CHANNEL_ID);
-    await channel.send({ content: `🎬 Neuer Clip von **${clip.broadcaster_name}**`, embeds: [embed] });
+    channel = await discordClient.channels.fetch(DISCORD_CHANNEL_ID);
   } catch (e) {
     console.error('❌ Discord-Channel konnte nicht geladen werden. Prüfe die ID und Rechte.', e);
+    return;
   }
+
+  await channel.send({ content: `🎬 Neuer Clip von **${clip.broadcaster_name}**`, embeds: [embed] });
 }
 
 async function poll() {
@@ -98,8 +102,8 @@ async function poll() {
 
 discordClient.once('ready', async () => {
   console.log(`✅ Discord-Bot online: ${discordClient.user.tag}`);
-  await poll(); // Direkt starten
-  setInterval(poll, 5 * 60 * 1000); // Alle 5 Minuten
+  await poll();
+  setInterval(poll, 5 * 60 * 1000);
 });
 
 discordClient.login(DISCORD_TOKEN);
