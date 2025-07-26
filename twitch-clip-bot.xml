@@ -1,0 +1,33 @@
+<Container>
+  <Name>twitch-clip-bot</Name>
+  <Repository>ghcr.io/i3ucky/twitch-clip-bot:latest</Repository>
+  <Registry>ghcr.io</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>bash</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/i3ucky/twitch-clip-bot</Support>
+  <Project>https://github.com/i3ucky/twitch-clip-bot</Project>
+  <Overview>Discord Bot: Postet neueste Twitch Clips in Discord</Overview>
+  <Description>Automatischer Bot, der die neuesten Clips eines Twitch-Kanals in einen Discord-Kanal postet.</Description>
+  <WebUI></WebUI>
+  <Icon>https://cdn-icons-png.flaticon.com/512/1384/1384060.png</Icon>
+
+  <Config>
+    <Env name="DISCORD_TOKEN" description="Discord Bot Token" required="true" display="true" default=""/>
+    <Env name="DISCORD_CHANNEL_ID" description="Discord Channel ID für die Posts" required="true" display="true" default=""/>
+    <Env name="TWITCH_CLIENT_ID" description="Twitch Client ID" required="true" display="true" default=""/>
+    <Env name="TWITCH_CLIENT_SECRET" description="Twitch Client Secret" required="true" display="true" default=""/>
+    <Env name="TWITCH_USERNAME" description="Twitch Kanalname (username)" required="true" display="true" default=""/>
+  </Config>
+
+  <PostArgs></PostArgs>
+  <ExtraParams></ExtraParams>
+  <CPUset></CPUset>
+  <CPUPriority></CPUPriority>
+  <MemoryLimit>0</MemoryLimit>
+  <Support></Support>
+  <NetworkMode>bridge</NetworkMode>
+  <Console>none</Console>
+  <InitialRun>false</InitialRun>
+</Container>
