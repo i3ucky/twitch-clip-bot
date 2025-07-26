@@ -67,12 +67,19 @@ async function getLatestClip() {
 }
 
 async function sendClipToDiscord(clip) {
+  const createdAt = new Date(clip.created_at);
+  const date = createdAt.toLocaleDateString('de-DE');
+  const time = createdAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+
   const embed = {
     title: clip.title,
     url: clip.url,
     image: { url: clip.thumbnail_url },
     author: {
       name: clip.broadcaster_name
+    },
+    footer: {
+      text: `🎥 Erstellt von ${clip.creator_name} am ${date} um ${time} Uhr`
     }
   };
 
