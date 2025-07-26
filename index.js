@@ -1,110 +1,123 @@
-import dotenv from "dotenv";
-dotenv.config();
+import fetch from 'node-fetch';
+import { Client, GatewayIntentBits } from 'discord.js';
 
-import { Client, GatewayIntentBits, EmbedBuilder } from "discord.js";
-import fetch from "node-fetch";
-
-const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
-const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
-
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
-const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-const TWITCH_USERNAME = process.env.TWITCH_USERNAME;
+// Umgebungsvariablen prüfen
+const {
+  DISCORD_TOKEN,
+  DISCORD_CHANNEL_ID,
+  TWITCH_CLIENT_ID,
+  TWITCH_CLIENT_SECRET,
+  TWITCH_USERNAME
+} = process.env;
 
 if (!DISCORD_TOKEN || !DISCORD_CHANNEL_ID || !TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !TWITCH_USERNAME) {
-  console.error("Bitte alle Umgebungsvariablen in der .env Datei setzen!");
+  console.error("❌ Eine oder mehrere Umgebungsvariablen fehlen!");
+  console.error("🔎 Aktueller Status:", {
+    DISCORD_TOKEN: DISCORD_TOKEN ? "[gesetzt]" : "[fehlt]",
+    DISCORD_CHANNEL_ID,
+    TWITCH_CLIENT_ID,
+    TWITCH_CLIENT_SECRET: TWITCH_CLIENT_SECRET ? "[gesetzt]" : "[fehlt]",
+    TWITCH_USERNAME
+  });
   process.exit(1);
 }
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const discordClient = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-let twitchAccessToken = null;
-let lastClipId = null;
+let accessToken = '';
+let lastClipId = '';
 
-async function getTwitchAccessToken() {
-  const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
-  const res = await fetch(url, { method: "POST" });
-  const data = await res.json();
-  if (data.access_token) {
-    twitchAccessToken = data.access_token;
-    console.log("Twitch Access Token erhalten");
-  } else {
-    throw new Error("Fehler beim Twitch Access Token holen: " + JSON.stringify(data));
-  }
-}
-
-async function getUserId(username) {
-  const url = `https://api.twitch.tv/helix/users?login=${username}`;
-  const res = await fetch(url, {
-    headers: {
-      "Client-ID": TWITCH_CLIENT_ID,
-      Authorization: `Bearer ${twitchAccessToken}`,
-    },
+async function getAccessToken() {
+  const res = await fetch('https://id.twitch.tv/oauth2/token', {
+    method: 'POST',
+    body: new URLSearchParams({
+      client_id: TWITCH_CLIENT_ID,
+      client_secret: TWITCH_CLIENT_SECRET,
+      grant_type: 'client_credentials'
+    })
   });
   const data = await res.json();
-  if (data.data && data.data.length > 0) {
-    return data.data[0].id;
-  }
-  throw new Error("Twitch User nicht gefunden");
+  accessToken = data.access_token;
 }
 
-async function getLatestClip(userId) {
-  const url = `https://api.twitch.tv/helix/clips?broadcaster_id=${userId}&first=1`;
-  const res = await fetch(url, {
+async function getLatestClip() {
+  const userRes = await fetch(`https://api.twitch.tv/helix/users?login=${TWITCH_USERNAME}`, {
     headers: {
-      "Client-ID": TWITCH_CLIENT_ID,
-      Authorization: `Bearer ${twitchAccessToken}`,
-    },
-  });
-  const data = await res.json();
-  if (data.data && data.data.length > 0) {
-    return data.data[0];
-  }
-  return null;
-}
-
-async function checkClips() {
-  try {
-    if (!twitchAccessToken) {
-      await getTwitchAccessToken();
+      'Client-ID': TWITCH_CLIENT_ID,
+      'Authorization': `Bearer ${accessToken}`
     }
-    const userId = await getUserId(TWITCH_USERNAME);
-    const clip = await getLatestClip(userId);
+  });
+  const userData = await userRes.json();
+  const userId = userData.data[0]?.id;
+  if (!userId) return null;
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // letzte 24h
+  const clipRes = await fetch(`https://api.twitch.tv/helix/clips?broadcaster_id=${userId}&first=10&started_at=${since}`, {
+    headers: {
+      'Client-ID': TWITCH_CLIENT_ID,
+      'Authorization': `Bearer ${accessToken}`
+    }
+  });
+  const clipData = await clipRes.json();
+  if (!clipData.data || clipData.data.length === 0) return null;
+
+  // Neuesten Clip anhand von created_at ermitteln
+  const newestClip = clipData.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+  return newestClip;
+}
+
+  const userData = await userRes.json();
+  const userId = userData.data[0]?.id;
+  if (!userId) return null;
+
+  const clipRes = await fetch(`https://api.twitch.tv/helix/clips?broadcaster_id=${userId}&first=1`, {
+    headers: {
+      'Client-ID': TWITCH_CLIENT_ID,
+      'Authorization': `Bearer ${accessToken}`
+    }
+  });
+  const clipData = await clipRes.json();
+  return clipData.data[0] || null;
+}
+
+async function sendClipToDiscord(clip) {
+  const embed = {
+    title: clip.title,
+    url: clip.url,
+    image: { url: clip.thumbnail_url },
+    author: {
+      name: clip.broadcaster_name
+    }
+  };
+
+  let channel;
+  try {
+    channel = await discordClient.channels.fetch(DISCORD_CHANNEL_ID);
+  } catch (e) {
+    console.error('❌ Discord-Channel konnte nicht geladen werden. Prüfe die ID und Rechte.', e);
+    return;
+  }
+
+  await channel.send({ content: `🎬 Neuer Clip von **${clip.broadcaster_name}**`, embeds: [embed] });
+}
+
+async function poll() {
+  try {
+    await getAccessToken(); // ← Access Token bei jedem Durchlauf neu holen
+    const clip = await getLatestClip();
     if (clip && clip.id !== lastClipId) {
+      await sendClipToDiscord(clip);
       lastClipId = clip.id;
-      console.log("Neuer Clip gefunden:", clip.title);
-
-      const channel = await client.channels.fetch(DISCORD_CHANNEL_ID);
-      if (!channel) {
-        console.error("Discord Channel nicht gefunden");
-        return;
-      }
-
-      const embed = new EmbedBuilder()
-        .setTitle(clip.title)
-        .setURL(clip.url)
-        .setAuthor({ name: clip.broadcaster_name, url: `https://twitch.tv/${clip.broadcaster_name}` })
-        .setThumbnail(clip.thumbnail_url)          // Vorschaubild als kleines Thumbnail
-        //.setImage(clip.thumbnail_url)             // Falls du großes Bild willst, kannst du das aktivieren
-        .setTimestamp(new Date(clip.created_at))
-        .setFooter({ text: `Clips von ${TWITCH_USERNAME}` });
-
-      await channel.send({ embeds: [embed] });
-      console.log("Clip in Discord gepostet");
-    } else {
-      console.log("Kein neuer Clip gefunden");
     }
   } catch (err) {
-    console.error("Fehler beim Clip Check:", err);
-    twitchAccessToken = null; // Token neu holen beim nächsten Mal
+    console.error('❌ Fehler beim Polling:', err);
   }
 }
 
-client.once("ready", () => {
-  console.log(`Discord Bot gestartet als ${client.user.tag}`);
-
-  checkClips();
-  setInterval(checkClips, 5 * 60 * 1000); // alle 5 Minuten prüfen
+discordClient.once('ready', async () => {
+  console.log(`✅ Discord-Bot online: ${discordClient.user.tag}`);
+  await poll(); // Direkt bei Start
+  setInterval(poll, 5 * 60 * 1000); // Alle 5 Minuten
 });
 
-client.login(DISCORD_TOKEN);
+discordClient.login(DISCORD_TOKEN);
