@@ -146,6 +146,7 @@ async function pollAll() {
         // Setze last_clip_created_at auf das neueste Clip-Datum
         const newestDate = new Date(clips[clips.length - 1].created_at);
         sub.last_clip_created_at = newestDate;
+        sub.last_clip_id = newestClip.id;
         await sub.save();
       }
     }
