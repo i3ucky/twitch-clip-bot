@@ -88,18 +88,23 @@ async function fetchWithAuthRetry(url, options = {}, retry = true) {
 }
 
 // Twitch-Clip holen
-async function getLatestClip(twitchUsername) {
+async function getLatestClips(twitchUsername, sinceDate) {
   const userRes = await fetchWithAuthRetry(`https://api.twitch.tv/helix/users?login=${twitchUsername}`);
   const userData = await userRes.json();
   const userId = userData.data[0]?.id;
-  if (!userId) return null;
+  if (!userId) return [];
 
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const clipRes = await fetchWithAuthRetry(`https://api.twitch.tv/helix/clips?broadcaster_id=${userId}&first=10&started_at=${since}`);
+  const startedAt = sinceDate ? new Date(sinceDate).toISOString() : new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const clipRes = await fetchWithAuthRetry(`https://api.twitch.tv/helix/clips?broadcaster_id=${userId}&first=20&started_at=${startedAt}`);
   const clipData = await clipRes.json();
-  if (!clipData.data || clipData.data.length === 0) return null;
 
-  return clipData.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+  if (!clipData.data || clipData.data.length === 0) return [];
+
+  // Sortiere die Clips nach Erstellungsdatum aufsteigend (älteste zuerst)
+  return clipData.data
+    .filter(clip => new Date(clip.created_at) > new Date(sinceDate)) // Nur Clips nach sinceDate
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 }
 
 // Discord-Nachricht senden
@@ -128,25 +133,26 @@ async function sendClipToDiscord(clip, channelId) {
 async function pollAll() {
   try {
     const subs = await Subscription.findAll({ where: { active: true } });
+
     for (const sub of subs) {
-      const clip = await getLatestClip(sub.twitch_username);
-if (
-  clip &&
-  clip.id !== sub.last_clip_id &&
-  (!sub.last_clip_created_at || new Date(clip.created_at) > sub.last_clip_created_at)
-  ) 
-{
-  await sendClipToDiscord(clip, sub.discord_channel_id);
-  sub.last_clip_id = clip.id;
-  sub.last_clip_created_at = new Date(clip.created_at);
-  await sub.save();
-}
+      const lastDate = sub.last_clip_created_at || new Date(0); // falls null, 1970
+      const clips = await getLatestClips(sub.twitch_username, lastDate);
+
+      if (clips.length > 0) {
+        for (const clip of clips) {
+          await sendClipToDiscord(clip, sub.discord_channel_id);
+        }
+
+        // Setze last_clip_created_at auf das neueste Clip-Datum
+        const newestDate = new Date(clips[clips.length - 1].created_at);
+        sub.last_clip_created_at = newestDate;
+        await sub.save();
+      }
     }
   } catch (err) {
     console.error("❌ Fehler beim Polling:", err);
   }
 }
-
 // Start
 discordClient.once('ready', async () => {
   console.log(`✅ Discord-Bot online: ${discordClient.user.tag}`);
