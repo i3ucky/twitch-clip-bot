@@ -6,8 +6,10 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "discord.js": "^14.0.0",
+    "discord.js": "^14.11.0",
     "dotenv": "^16.3.1",
-    "node-fetch": "^3.3.1"
+    "mysql2": "^3.9.2",
+    "node-fetch": "^3.3.2",
+    "sequelize": "^6.35.1"
   }
 }
