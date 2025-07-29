@@ -1,4 +1,4 @@
-<Container>
+<Container version="2">
   <Name>twitch-clip-bot</Name>
   <Repository>ghcr.io/i3ucky/twitch-clip-bot:latest</Repository>
   <Registry>ghcr.io</Registry>
@@ -8,26 +8,25 @@
   <Privileged>false</Privileged>
   <Support>https://github.com/i3ucky/twitch-clip-bot</Support>
   <Project>https://github.com/i3ucky/twitch-clip-bot</Project>
-  <Overview>Discord Bot: Postet neueste Twitch Clips in Discord</Overview>
-  <Description>Automatischer Bot, der die neuesten Clips eines Twitch-Kanals in einen Discord-Kanal postet.</Description>
-  <WebUI></WebUI>
-  <Icon>https://cdn-icons-png.flaticon.com/512/1384/1384060.png</Icon>
-
-  <Config>
-    <Env name="DISCORD_TOKEN" description="Discord Bot Token" required="true" display="true" default=""/>
-    <Env name="DISCORD_CHANNEL_ID" description="Discord Channel ID für die Posts" required="true" display="true" default=""/>
-    <Env name="TWITCH_CLIENT_ID" description="Twitch Client ID" required="true" display="true" default=""/>
-    <Env name="TWITCH_CLIENT_SECRET" description="Twitch Client Secret" required="true" display="true" default=""/>
-    <Env name="TWITCH_USERNAME" description="Twitch Kanalname (username)" required="true" display="true" default=""/>
-  </Config>
-
-  <PostArgs></PostArgs>
-  <ExtraParams></ExtraParams>
-  <CPUset></CPUset>
-  <CPUPriority></CPUPriority>
-  <MemoryLimit>0</MemoryLimit>
-  <Support></Support>
-  <NetworkMode>bridge</NetworkMode>
-  <Console>none</Console>
-  <InitialRun>false</InitialRun>
+  <Overview>Automatischer Bot, der die neuesten Clips eines Twitch-Kanals in einen Discord-Kanal postet.</Overview>
+  <Category>Tools:</Category>
+  <WebUI/>
+  <TemplateURL/>
+  <Icon>https://cdn-icons-png.flaticon.com/128/2504/2504946.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset>0</CPUset>
+  <DateInstalled>1753560970</DateInstalled>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="DISCORD_TOKEN" Target="DISCORD_TOKEN" Default="" Mode="text" Description="Dein Discord Bot Token" Type="Variable" Display="always" Required="true" Mask="{8}"></Config>
+  <Config Name="TWITCH_CLIENT_ID" Target="TWITCH_CLIENT_ID" Default="" Mode="text" Description="Twitch API Client ID" Type="Variable" Display="always" Required="true" Mask="{8}"></Config>
+  <Config Name="TWITCH_CLIENT_SECRET" Target="TWITCH_CLIENT_SECRET" Default="" Mode="text" Description="Twitch API Client Secret" Type="Variable" Display="always" Required="true" Mask="{8}"></Config> 
+  <Config Name="DB_HOST" Target="DB_HOST" Default="" Mode="text" Description="Datenbank Host IP" Type="Variable" Display="always" Required="true" Mask="{8}"></Config>
+  <Config Name="DB_PORT" Target="DB_PORT" Default="" Mode="text" Description="Datenbank Port" Type="Variable" Display="always" Required="true" Mask="{8}"></Config>
+  <Config Name="DB_NAME" Target="DB_NAME" Default="" Mode="text" Description="Datenbank Name" Type="Variable" Display="always" Required="true" Mask="{8}"></Config>
+  <Config Name="DB_USER" Target="DB_USER" Default="" Mode="text" Description="Datenbank Benutzer" Type="Variable" Display="always" Required="true" Mask="{8}"></Config>
+  <Config Name="DB_PASS" Target="DB_PASS" Default="" Mode="text" Description="Datenbank Passwort" Type="Variable" Display="always" Required="true" Mask="{8}"></Config>
+  <TailscaleStateDir/>
 </Container>
