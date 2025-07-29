@@ -19,6 +19,15 @@ const {
 // Prüfung auf fehlende Variablen
 if (!DISCORD_TOKEN || !TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !DB_HOST || !DB_NAME || !DB_USER || !DB_PASS) {
   console.error("❌ Eine oder mehrere Umgebungsvariablen fehlen!");
+  console.log("🔎 Aktueller Status:", {
+    DISCORD_TOKEN,
+    TWITCH_CLIENT_ID,
+    TWITCH_CLIENT_SECRET,
+    DB_HOST,
+    DB_NAME,
+    DB_USER,
+    DB_PASS
+  });
   process.exit(1);
 }
 
@@ -32,7 +41,7 @@ let accessToken = '';
 const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
   host: DB_HOST,
   dialect: 'mysql',
-  port: DB_PORT, || 3306
+  port: DB_PORT || 3306,
   logging: console.log
 });
 
