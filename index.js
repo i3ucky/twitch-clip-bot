@@ -50,6 +50,7 @@ const Subscription = sequelize.define('Subscription', {
   twitch_username: DataTypes.STRING,
   discord_channel_id: DataTypes.STRING,
   last_clip_id: DataTypes.STRING,
+  last_clip_created_at: DataTypes.DATE,
   active: DataTypes.BOOLEAN
 });
 
@@ -130,11 +131,17 @@ async function pollAll() {
     const subs = await Subscription.findAll({ where: { active: true } });
     for (const sub of subs) {
       const clip = await getLatestClip(sub.twitch_username);
-      if (clip && clip.id !== sub.last_clip_id) {
-        await sendClipToDiscord(clip, sub.discord_channel_id);
-        sub.last_clip_id = clip.id;
-        await sub.save();
-      }
+if (
+  clip &&
+  clip.id !== sub.last_clip_id &&
+  (!sub.last_clip_created_at || new Date(clip.created_at) > sub.last_clip_created_at)
+  ) 
+{
+  await sendClipToDiscord(clip, sub.discord_channel_id);
+  sub.last_clip_id = clip.id;
+  sub.last_clip_created_at = new Date(clip.created_at);
+  await sub.save();
+}
     }
   } catch (err) {
     console.error("❌ Fehler beim Polling:", err);
