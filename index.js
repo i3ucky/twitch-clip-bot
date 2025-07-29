@@ -158,8 +158,25 @@ discordClient.once('ready', async () => {
   console.log(`✅ Discord-Bot online: ${discordClient.user.tag}`);
   await sequelize.sync(); // optional: { alter: true }
   await getAccessToken();
-  await pollAll();
-  setInterval(pollAll, 5 * 60 * 1000); // alle 5 Minuten
+  await pollAll(); // einmal sofort ausführen
+  startPolling();  // danach in Intervallen starten
 });
 
+// Wiederholtes Polling alle 5 Minuten
+async function startPolling() {
+  try {
+    await pollAll();
+    console.log(`[⏱️ ${new Date().toISOString()}] Polling läuft...`);
+  } catch (err) {
+    console.error("❌ Fehler im Intervall-Polling:", err);
+  }
+  setTimeout(startPolling, 5 * 60 * 1000); // 5 Minuten
+}
+
+// Unbehandelte Fehler global abfangen
+process.on('unhandledRejection', (err) => {
+  console.error('❌ Unbehandelter Fehler:', err);
+});
+
+// Discord-Login starten
 discordClient.login(DISCORD_TOKEN);
