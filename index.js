@@ -52,6 +52,14 @@ const Subscription = sequelize.define('Subscription', {
   last_clip_created_at: DataTypes.DATE,
   active: DataTypes.BOOLEAN
 });
+const Clip = sequelize.define('Clip', {
+  clip_id: { type: DataTypes.STRING, unique: true },
+  twitch_username: DataTypes.STRING,
+  title: DataTypes.STRING,
+  url: DataTypes.STRING,
+  thumbnail_url: DataTypes.STRING,
+  created_at: DataTypes.DATE,
+});
 
 // Twitch Access-Token holen
 async function getAccessToken() {
@@ -135,22 +143,34 @@ async function pollAll() {
     const subs = await Subscription.findAll({ where: { active: true } });
 
     for (const sub of subs) {
-      const lastDate = sub.last_clip_created_at || new Date(0); // falls null, 1970
+      const lastDate = sub.last_clip_created_at || new Date(0);
       const clips = await getLatestClips(sub.twitch_username, lastDate);
 
       if (clips.length > 0) {
         for (const clip of clips) {
           await sendClipToDiscord(clip, sub.discord_channel_id);
+
+          // ⏺️ Clip in DB speichern, wenn noch nicht vorhanden
+          await Clip.findOrCreate({
+            where: { clip_id: clip.id },
+            defaults: {
+              twitch_username: sub.twitch_username,
+              title: clip.title,
+              url: clip.url,
+              thumbnail_url: clip.thumbnail_url,
+              created_at: new Date(clip.created_at),
+            }
+          });
         }
 
-        // Setze last_clip_created_at auf das neueste Clip-Datum
+        // Nur das neueste Clip-Datum + ID speichern
         const newestClip = clips[clips.length - 1];
-        const newestDate = new Date(clips[clips.length - 1].created_at);
-        sub.last_clip_created_at = newestDate;
+        sub.last_clip_created_at = new Date(newestClip.created_at);
         sub.last_clip_id = newestClip.id;
         await sub.save();
       }
     }
+
   } catch (err) {
     console.error("❌ Fehler beim Polling:", err);
   }
