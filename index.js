@@ -51,7 +51,7 @@ const Subscription = sequelize.define('Subscription', {
   last_clip_id: DataTypes.STRING,
   last_clip_created_at: DataTypes.DATE,
   active: DataTypes.BOOLEAN
-});
+}, { tableName: 'Subscriptions' });
 const Clip = sequelize.define('Clip', {
   clip_id: { type: DataTypes.STRING, unique: true },
   twitch_username: DataTypes.STRING,
@@ -59,7 +59,9 @@ const Clip = sequelize.define('Clip', {
   url: DataTypes.STRING,
   thumbnail_url: DataTypes.STRING,
   created_at: DataTypes.DATE,
-});
+  creator_id: DataTypes.STRING,
+  creator_name: DataTypes.STRING  
+}, { tableName: 'Clips' });
 
 // Twitch Access-Token holen
 async function getAccessToken() {
@@ -71,7 +73,9 @@ async function getAccessToken() {
       grant_type: 'client_credentials'
     })
   });
+  if (!res.ok) throw new Error(`Twitch token HTTP ${res.status}`);
   const data = await res.json();
+  if (!data.access_token) throw new Error('No access_token in response');
   accessToken = data.access_token;
 }
 
@@ -159,6 +163,8 @@ async function pollAll() {
               url: clip.url,
               thumbnail_url: clip.thumbnail_url,
               created_at: new Date(clip.created_at),
+              creator_id:     clip.creator_id,
+              creator_name:   clip.creator_name
             }
           });
         }
