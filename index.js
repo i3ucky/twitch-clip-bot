@@ -108,7 +108,7 @@ async function getLatestClips(twitchUsername, sinceDate) {
 
   const startedAt = sinceDate ? new Date(sinceDate).toISOString() : new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  const clipRes = await fetchWithAuthRetry(`https://api.twitch.tv/helix/clips?broadcaster_id=${userId}&first=20&started_at=${startedAt}`);
+  const clipRes = await fetchWithAuthRetry(`https://api.twitch.tv/helix/clips?broadcaster_id=${userId}&first=100&started_at=${startedAt}`);
   const clipData = await clipRes.json();
 
   if (!clipData.data || clipData.data.length === 0) return [];
